@@ -8,7 +8,7 @@ const Footer = () => {
         <SocialMedia />
 
         <p className="text-[0.8rem] sm:text-[0.9rem] text-(--color-gray) rubik-regular whitespace-nowrap">
-          &copy; 2021 All Rights Reserved by{" "}
+          &copy; {new Date().getFullYear()} All Rights Reserved by{" "}
           <Link href="/login" className="font-bold audiowide tracking-widest">
             Masud ibn Belat
           </Link>

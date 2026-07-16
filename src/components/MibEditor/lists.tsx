@@ -48,6 +48,7 @@ import {
   KEY_BACKSPACE_COMMAND,
   OUTDENT_CONTENT_COMMAND,
   SELECTION_CHANGE_COMMAND,
+  LexicalNode,
 } from "lexical";
 import { $findMatchingParent, mergeRegister } from "@lexical/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -382,7 +383,7 @@ export function ListBackspacePlugin() {
             } else {
               // Middle item → split list
               const newList = $createListNode(list.getListType());
-              let sib = next;
+              let sib: LexicalNode | null = next;
               while (sib) {
                 const toMove = sib;
                 sib = sib.getNextSibling();
