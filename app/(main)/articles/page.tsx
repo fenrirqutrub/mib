@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { connectDB } from "@/src/lib/db";
 import { Article } from "@/src/models/Article";
 import { Topic } from "@/src/models/Topic";
-import ArticleSliderClient from "@/src/components/Articles/ArticleSliderClient";
+// import ArticleSliderClient from "@/src/components/Articles/ArticleSliderClient";
 import ArticlesFilterClient from "@/src/components/Articles/ArticlesFilterClient";
 import type { TopicData, TopicLean } from "@/src/types/Topic";
 import type { ArticleData, ArticleLean } from "@/src/types/article";
@@ -82,8 +82,7 @@ export default async function ArticlesPage() {
 
   return (
     <div>
-      <ArticleSliderClient topics={topics} />
-
+      {/* <ArticleSliderClient topics={topics} /> */}
       {!articles.length ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Inbox className="w-10 h-10 text-(--color-gray)" />

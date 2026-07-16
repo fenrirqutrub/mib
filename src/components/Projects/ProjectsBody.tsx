@@ -169,7 +169,7 @@ const ProjectsBody = ({ initialData }: Props) => {
   }, [filter, prefetchProjects]);
 
   return (
-    <section className="mx-auto px-4 lg:px-0.5 py-8">
+    <section className="mx-auto px-4 lg:px-0.5 py-8 mt-20">
       <div className="mb-6 flex flex-col lg:flex-row gap-4 justify-center lg:justify-between">
         <div>
           <h2 className="text-4xl lg:text-5xl font-bold text-(--color-text)">

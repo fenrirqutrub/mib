@@ -166,7 +166,7 @@ export default function Pagination({
               aria-current={currentPage === p ? "page" : undefined}
               className={`${btnBase} w-8 h-8 ${
                 currentPage === p
-                  ? "bg-violet-600 text-white border border-violet-600 shadow-sm shadow-violet-600/30 scale-105"
+                  ? "bg-(--color-text) text-(--color-bg) border border-(--color-bg) shadow-sm shadow-violet-600/30 scale-105"
                   : "text-(--color-gray) hover:text-(--color-text) hover:bg-(--color-active-bg) border border-transparent hover:border-(--color-active-border)"
               }`}
             >

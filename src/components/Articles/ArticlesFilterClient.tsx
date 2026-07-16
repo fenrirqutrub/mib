@@ -53,7 +53,7 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
     topicOptions.find((o) => o.value === selected)?.label ?? "সব টপিক";
 
   return (
-    <div className="space-y-6 p-4 mt-6">
+    <div className="space-y-6 p-4 mt-20">
       <div className="flex gap-4 items-center justify-between">
         <h2 className="text-3xl lg:text-5xl font-semibold text-(--color-text) bangla">
           Articles
