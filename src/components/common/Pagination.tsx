@@ -1,18 +1,9 @@
 // src/components/common/Pagination.tsx
 "use client";
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-/* ───────────────────────────────────────────────
-   usePagination — generic, reusable, zero-loading
-   client-side pagination hook (works on any array)
-─────────────────────────────────────────────── */
 interface UsePaginationOptions {
   pageSize?: number;
   storageKey?: string;
@@ -36,10 +27,9 @@ export function usePagination<T>(
       const saved = localStorage.getItem(storageKey);
       const parsed = saved ? parseInt(saved, 10) : NaN;
       if (!isNaN(parsed) && parsed >= 1) setPage(parsed);
-    } catch {
-      // localStorage unavailable (SSR / private mode)
+    } catch (err) {
+      console.error(err);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
   // persist page
@@ -47,12 +37,11 @@ export function usePagination<T>(
     if (!mounted || !storageKey) return;
     try {
       localStorage.setItem(storageKey, String(page));
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error(err);
     }
   }, [page, storageKey, mounted]);
 
-  // clamp if list shrinks (e.g. filter changes)
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
@@ -74,9 +63,6 @@ export function usePagination<T>(
   return { page, totalPages, paginated, goToPage };
 }
 
-/* ───────────────────────────────────────────────
-   Pagination — pure UI, CSS-transition only
-─────────────────────────────────────────────── */
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -130,17 +116,6 @@ export default function Pagination({
       aria-label="Pagination"
       className="flex items-center justify-center gap-1 flex-wrap select-none mt-10 lg:mt-16"
     >
-      {showFirstLast && (
-        <button
-          className={navBtn}
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
-          title="প্রথম পাতা"
-        >
-          <ChevronsLeft className="w-4 h-4" />
-        </button>
-      )}
-
       <button
         className={navBtn}
         onClick={() => onPageChange(currentPage - 1)}
@@ -184,17 +159,6 @@ export default function Pagination({
       >
         <ChevronRight className="w-4 h-4" />
       </button>
-
-      {showFirstLast && (
-        <button
-          className={navBtn}
-          onClick={() => onPageChange(totalPages)}
-          disabled={currentPage === totalPages}
-          title="শেষ পাতা"
-        >
-          <ChevronsRight className="w-4 h-4" />
-        </button>
-      )}
     </nav>
   );
 }
