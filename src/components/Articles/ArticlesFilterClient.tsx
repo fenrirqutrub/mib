@@ -74,7 +74,7 @@ export default function ArticlesFilterClient({ articles, topics }: Props) {
     <div className="space-y-6 p-4 mt-20">
       <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
         <div className="flex items-center">
-          <h2 className="text-3xl lg:text-5xl font-semibold text-(--color-text) bangla">
+          <h2 className="text-3xl lg:text-5xl font-semibold text-(--color-text) rubik">
             Articles
           </h2>
 

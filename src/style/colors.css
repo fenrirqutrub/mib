@@ -23,7 +23,7 @@ ClassName=" text-(--color-text) hover:text-(--color-text-hover) bg-(--color-bg)"
 :root {
   color-scheme: dark;
   --color-bg: #12161c;
-  --color-text: #ffffff;
+  --color-text: #dfdcd7;
   --color-gray: #90a1b9;
   --color-active-border: rgba(248, 249, 250, 0.2);
   --color-active-bg: rgba(248, 249, 250, 0.1);
