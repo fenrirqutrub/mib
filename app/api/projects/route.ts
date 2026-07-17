@@ -31,6 +31,11 @@ function isValidUrl(url: string): boolean {
   }
 }
 
+// ✅ Escape regex special chars so user input can't break/inject the pattern
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /* ── GET /api/projects ── */
 export async function GET(req: NextRequest) {
   try {
@@ -41,13 +46,29 @@ export async function GET(req: NextRequest) {
     const rawType = searchParams.get("type");
     const type = rawType === "web" || rawType === "app" ? rawType : null;
 
+    // ✅ Read + sanitize the search param
+    const rawSearch = searchParams.get("search")?.trim() ?? "";
+
     const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
     const limit = Math.min(
       50,
       Math.max(1, Number(searchParams.get("limit") ?? "10") || 10),
     );
 
-    const filter = type ? { type } : {};
+    // ✅ Build the actual filter used for both find() and count()
+    const filter: Record<string, unknown> = {};
+    if (type) filter.type = type;
+
+    if (rawSearch) {
+      const regex = new RegExp(escapeRegex(rawSearch), "i");
+      filter.$or = [
+        { title: regex },
+        { description: regex },
+        { technologies: regex },
+      ];
+    }
+
+    const hasFilter = Object.keys(filter).length > 0;
     const skip = (page - 1) * limit;
 
     const projection = {
@@ -63,7 +84,8 @@ export async function GET(req: NextRequest) {
       createdAt: 1,
     };
 
-    const totalPromise = type
+    // ✅ estimatedDocumentCount() ignores filters entirely — only safe with no filter at all
+    const totalPromise = hasFilter
       ? Project.countDocuments(filter)
       : Project.estimatedDocumentCount();
 

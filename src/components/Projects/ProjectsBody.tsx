@@ -16,6 +16,7 @@ import ProjectModal from "./ProjectModal";
 import ProjectFilter, { FILTERS } from "./ProjectFilter";
 import Loader from "../common/Loader";
 import Pagination from "../common/Pagination";
+import SearchBar from "../SearchBar/SearchBar";
 
 const PAGE_SIZE = 6;
 const STALE_TIME = 1000 * 60 * 5;
@@ -25,6 +26,7 @@ const STORAGE_KEY = "projects-pagination";
 const fetchProjects = async (
   filter: FilterType,
   page: number,
+  search: string, // ✅ Added search parameter
   signal?: AbortSignal,
 ) => {
   const res = await axiosSecure.get<ApiResponse>("/api/projects", {
@@ -32,6 +34,7 @@ const fetchProjects = async (
       page,
       limit: PAGE_SIZE,
       ...(filter !== "all" ? { type: filter } : {}),
+      ...(search ? { search: search } : {}), // ✅ Send search query to API
     },
     signal,
   });
@@ -39,13 +42,27 @@ const fetchProjects = async (
 };
 
 interface Props {
-  initialData: ApiResponse; // ✅ server থেকে আসবে
+  initialData: ApiResponse;
 }
 
 const ProjectsBody = ({ initialData }: Props) => {
   const [page, setPage] = useState<number>(1);
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  // ✅ Search States
+  const [searchInput, setSearchInput] = useState(""); // Instant input state
+  const [debouncedSearch, setDebouncedSearch] = useState(""); // Delayed state for API
+
+  // ✅ Debounce effect: Wait 500ms after user stops typing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1); // Reset to first page on new search
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
   useEffect(() => {
     try {
@@ -60,33 +77,40 @@ const ProjectsBody = ({ initialData }: Props) => {
   const queryClient = useQueryClient();
 
   const prefetchProjects = useCallback(
-    (nextFilter: FilterType, nextPage: number) => {
+    (nextFilter: FilterType, nextPage: number, nextSearch: string) => {
       return queryClient.prefetchQuery({
-        queryKey: ["projects", nextFilter, nextPage],
-        queryFn: ({ signal }) => fetchProjects(nextFilter, nextPage, signal),
+        queryKey: ["projects", nextFilter, nextPage, nextSearch],
+        queryFn: ({ signal }) =>
+          fetchProjects(nextFilter, nextPage, nextSearch, signal),
         staleTime: STALE_TIME,
       });
     },
     [queryClient],
   );
 
-  // ✅ page change হলে persist করো
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, String(page));
     } catch {
-      // localStorage unavailable (private mode etc.)
+      // localStorage unavailable
     }
   }, [page]);
 
   const { data, isFetching, isError, error, refetch } = useQuery<ApiResponse>({
-    queryKey: ["projects", filter, page],
-    queryFn: ({ signal }) => fetchProjects(filter, page, signal),
+    // ✅ Added debouncedSearch to queryKey
+    queryKey: ["projects", filter, page, debouncedSearch],
+    queryFn: ({ signal }) =>
+      fetchProjects(filter, page, debouncedSearch, signal),
 
-    initialData: filter === "all" && page === 1 ? initialData : undefined,
+    // ✅ Only use initial data if it's the exact first view (no search)
+    initialData:
+      filter === "all" && page === 1 && debouncedSearch === ""
+        ? initialData
+        : undefined,
     initialDataUpdatedAt:
-      // eslint-disable-next-line react-hooks/purity
-      filter === "all" && page === 1 ? Date.now() : undefined,
+      filter === "all" && page === 1 && debouncedSearch === ""
+        ? Date.now()
+        : undefined,
     placeholderData: keepPreviousData,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -98,12 +122,12 @@ const ProjectsBody = ({ initialData }: Props) => {
   const projects = data?.data ?? [];
   const meta = data?.meta;
 
-  // ✅ initialData আসার সাথে সাথে cache এ set করো
   useEffect(() => {
-    queryClient.setQueryData(["projects", "all", 1], initialData);
-  }, [initialData, queryClient]);
+    if (filter === "all" && page === 1 && debouncedSearch === "") {
+      queryClient.setQueryData(["projects", "all", 1, ""], initialData);
+    }
+  }, [initialData, queryClient, filter, page, debouncedSearch]);
 
-  // ✅ restored page যদি totalPages-এর বেশি হয়ে যায় (filter change / data shrink), clamp করো
   useEffect(() => {
     if (meta && page > meta.totalPages) {
       setPage(meta.totalPages);
@@ -132,10 +156,7 @@ const ProjectsBody = ({ initialData }: Props) => {
       });
 
       requestAnimationFrame(() => {
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       });
     },
     [page, meta],
@@ -149,41 +170,49 @@ const ProjectsBody = ({ initialData }: Props) => {
     setSelectedProject(null);
   }, []);
 
-  // ✅ Next/prev page prefetch
+  // ✅ Updated prefetch logic to include search
   useEffect(() => {
     if (!meta?.totalPages) return;
     const nextPage = page + 1;
     const prevPage = page - 1;
-    if (nextPage <= meta.totalPages) void prefetchProjects(filter, nextPage);
-    if (prevPage >= 1) void prefetchProjects(filter, prevPage);
-  }, [page, filter, meta?.totalPages, prefetchProjects]);
+    if (nextPage <= meta.totalPages)
+      void prefetchProjects(filter, nextPage, debouncedSearch);
+    if (prevPage >= 1) void prefetchProjects(filter, prevPage, debouncedSearch);
+  }, [page, filter, debouncedSearch, meta?.totalPages, prefetchProjects]);
 
-  // ✅ Other filters prefetch (delay দিয়ে)
+  // ✅ Updated other filters prefetch to include search
   useEffect(() => {
     const timer = window.setTimeout(() => {
       FILTERS.map((item) => item.value)
         .filter((value) => value !== filter)
-        .forEach((value) => void prefetchProjects(value, 1));
+        .forEach((value) => void prefetchProjects(value, 1, debouncedSearch));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [filter, prefetchProjects]);
+  }, [filter, debouncedSearch, prefetchProjects]);
 
   return (
     <section className="mx-auto px-4 lg:px-0.5 py-8 mt-20">
       <div className="mb-6 flex flex-col lg:flex-row gap-4 justify-center lg:justify-between">
-        <div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-(--color-text)">
-            Projects
+        <div className="flex items-center justify-center">
+          <h2 className="  text-4xl lg:text-5xl font-bold text-(--color-text)">
+            Projects{" "}
           </h2>
-          <p className="mt-1 text-sm text-(--color-gray)">
-            Total {meta?.total ?? initialData.meta.total} projects
-          </p>
+          <span className="text-sm bg-(--color-active-bg) px-2 text-(--color-text) rounded-lg">
+            {meta?.total ?? 0}
+          </span>
         </div>
         <ProjectFilter value={filter} onChange={handleFilterChange} />
+        <div className="">
+          <SearchBar
+            value={searchInput}
+            onChange={setSearchInput}
+            isLoading={isFetching}
+            placeholder="Search projects..."
+          />
+        </div>
       </div>
 
       <div className="relative min-h-80">
-        {/* ✅ mode="sync" — exit animation wait করবে না, lag কমবে */}
         <AnimatePresence mode="sync">
           {isError && (
             <motion.div
@@ -224,11 +253,10 @@ const ProjectsBody = ({ initialData }: Props) => {
 
           {!isError && projects.length > 0 && (
             <motion.div
-              key={`${filter}-${page}`}
+              key={`${filter}-${page}-${debouncedSearch}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              // ✅ transition duration কমিয়ে দাও
               transition={{ duration: 0.15 }}
               className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
             >
@@ -244,7 +272,6 @@ const ProjectsBody = ({ initialData }: Props) => {
           )}
         </AnimatePresence>
 
-        {/* ✅ Subtle overlay — full block না করে */}
         {isFetching && projects.length > 0 && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-3xl bg-(--color-bg)/20 backdrop-blur-[1px] transition-opacity duration-200">
             <Loader />

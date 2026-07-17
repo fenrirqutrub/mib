@@ -4,7 +4,7 @@ import { unstable_cache } from "next/cache";
 import { connectDB } from "@/src/lib/db";
 import { Project } from "@/src/models/Project";
 import ProjectsBody from "@/src/components/Projects/ProjectsBody";
-// import ProjectsHeader from "@/src/components/Projects/ProjectsHeader";
+
 import type { Project as ProjectType, ApiResponse } from "@/src/types/project";
 
 export const revalidate = 300;
@@ -105,7 +105,6 @@ const Projects = async () => {
 
   return (
     <div>
-      {/* <ProjectsHeader projects={projects} /> */}
       <ProjectsBody initialData={initialData} />
     </div>
   );
